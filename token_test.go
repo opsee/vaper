@@ -1,4 +1,4 @@
-package token
+package vaper
 
 import (
 	. "gopkg.in/check.v1"

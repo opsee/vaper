@@ -1,4 +1,4 @@
-package main
+package vaper
 
 import (
 	"encoding/json"
