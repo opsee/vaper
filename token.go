@@ -26,7 +26,7 @@ func New(thing interface{}, sub string, iat, exp time.Time) *Token {
 
 	t := reflectValue(thing)
 	for i := 0; i < t.NumField(); i++ {
-		tag := t.Type().Field(i).Tag.Get("json")
+		tag := t.Type().Field(i).Tag.Get("token")
 		if tag != "" {
 			token[tag] = t.Field(i).Interface()
 		}
@@ -52,7 +52,7 @@ func (token *Token) Reify(thing interface{}) error {
 	t := reflectValue(thing)
 
 	for i := 0; i < t.NumField(); i++ {
-		tag := t.Type().Field(i).Tag.Get("json")
+		tag := t.Type().Field(i).Tag.Get("token")
 		kind := t.Field(i).Kind()
 
 		val, ok := (*token)[tag]

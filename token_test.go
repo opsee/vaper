@@ -8,10 +8,10 @@ import (
 
 type TokenSuite struct{}
 type testUser struct {
-	Id                 int       `json:"id"`
-	Email              string    `json:"email"`
-	CreatedAt          time.Time `json:"created_at"`
-	Admin              bool      `json:"admin"`
+	Id                 int       `token:"id"`
+	Email              string    `token:"email"`
+	CreatedAt          time.Time `token:"created_at"`
+	Admin              bool      `token:"admin"`
 	ThisFieldIsIgnored bool
 }
 
