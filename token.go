@@ -62,9 +62,10 @@ func (token *Token) Reify(thing interface{}) error {
 
 		switch val.(type) {
 		case float64: // a special case for json turning things into floats
-			if kind == reflect.Int {
+			switch kind {
+			case reflect.Int, reflect.Int32, reflect.Int64:
 				t.Field(i).SetInt(int64(val.(float64)))
-			} else {
+			default:
 				t.Field(i).Set(reflect.ValueOf(val))
 			}
 		case string: // a special case for timestamps

@@ -12,6 +12,7 @@ type testUser struct {
 	Email              string    `token:"email"`
 	CreatedAt          time.Time `token:"created_at"`
 	Admin              bool      `token:"admin"`
+	DumbId             int32     `token:"dumb_id"`
 	ThisFieldIsIgnored bool
 }
 
@@ -59,6 +60,7 @@ func (s *TokenSuite) TestReify(c *C) {
 	c.Assert(user.Email, DeepEquals, "vapin@vape.it")
 	c.Assert(user.CreatedAt, DeepEquals, now)
 	c.Assert(user.Admin, DeepEquals, true)
+	c.Assert(user.DumbId, DeepEquals, int32(666))
 }
 
 func (s *TokenSuite) TestMarshalUnmarshal(c *C) {
@@ -114,6 +116,7 @@ func newTestToken(now, exp time.Time) *Token {
 		CreatedAt:          now,
 		Admin:              true,
 		ThisFieldIsIgnored: true,
+		DumbId:             int32(666),
 	}
 
 	return New(user, "vapin@vape.it", now, exp)
