@@ -93,15 +93,7 @@ func (token *Token) Reify(thing interface{}) error {
 			}
 		case map[string]interface{}:
 			switch tag {
-			case "team_flags":
-				var p *opsee_types.Permission
-				b, err := json.Marshal(val)
-				if err != nil {
-					continue
-				}
-				json.Unmarshal(b, &p)
-				t.Field(i).Set(reflect.ValueOf(p))
-			case "perms": // a special case or permissions
+			case "perms", "team_flags": // a special case or permissions
 				var p *opsee_types.Permission
 				b, err := json.Marshal(val)
 				if err != nil {
