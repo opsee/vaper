@@ -1,9 +1,13 @@
 package vaper
 
 import (
-	. "gopkg.in/check.v1"
 	"testing"
 	"time"
+
+	_ "github.com/opsee/basic/schema"
+	opsee_types "github.com/opsee/protobuf/opseeproto/types"
+
+	. "gopkg.in/check.v1"
 )
 
 type TokenSuite struct{}
@@ -14,6 +18,8 @@ type testUser struct {
 	Admin              bool      `token:"admin"`
 	DumbId             int32     `token:"dumb_id"`
 	ThisFieldIsIgnored bool
+	TeamFlags          *opsee_types.Permission `token:"team_flags"`
+	Perms              *opsee_types.Permission `token:"perms"`
 }
 
 var (
@@ -89,6 +95,8 @@ func (s *TokenSuite) TestMarshalUnmarshal(c *C) {
 	c.Assert((*decoded)["ThisFieldIsIgnored"], DeepEquals, nil)
 	c.Assert((*decoded)["email"], DeepEquals, "vapin@vape.it")
 	c.Assert((*decoded)["sub"], DeepEquals, "vapin@vape.it")
+	c.Assert((*decoded)["perms"], DeepEquals, map[string]interface{}{"name": "user", "perms": []interface{}{"admin"}})
+	c.Assert((*decoded)["team_flags"], DeepEquals, map[string]interface{}{"name": "team_flags", "perms": []interface{}{"external_check"}})
 }
 
 func (s *TokenSuite) TestVerify(c *C) {
@@ -118,6 +126,9 @@ func (s *TokenSuite) TestVerify(c *C) {
 }
 
 func newTestToken(now, exp time.Time) *Token {
+	perms, _ := opsee_types.NewPermissions("user", "admin")
+	teamflags, _ := opsee_types.NewPermissions("team_flags", "external_check")
+
 	user := &testUser{
 		Id:                 1,
 		Email:              "vapin@vape.it",
@@ -125,6 +136,8 @@ func newTestToken(now, exp time.Time) *Token {
 		Admin:              true,
 		ThisFieldIsIgnored: true,
 		DumbId:             int32(666),
+		TeamFlags:          teamflags,
+		Perms:              perms,
 	}
 
 	return New(user, "vapin@vape.it", now, exp)

@@ -3,9 +3,12 @@ package vaper
 import (
 	"encoding/json"
 	"errors"
-	"github.com/dvsekhvalnov/jose2go"
 	"reflect"
 	"time"
+
+	"github.com/dvsekhvalnov/jose2go"
+	_ "github.com/opsee/basic/schema"
+	opsee_types "github.com/opsee/protobuf/opseeproto/types"
 )
 
 type Token map[string]interface{}
@@ -78,8 +81,39 @@ func (token *Token) Reify(thing interface{}) error {
 			} else {
 				t.Field(i).Set(reflect.ValueOf(val))
 			}
+		case []interface{}:
+			var s []string
+			if r, ok := val.([]interface{}); ok {
+				for _, x := range r {
+					if z, ok := x.(string); ok {
+						s = append(s, z)
+					}
+				}
+				t.Field(i).Set(reflect.ValueOf(s))
+			}
+		case map[string]interface{}:
+			switch tag {
+			case "team_flags":
+				var p *opsee_types.Permission
+				b, err := json.Marshal(val)
+				if err != nil {
+					continue
+				}
+				json.Unmarshal(b, &p)
+				t.Field(i).Set(reflect.ValueOf(p))
+			case "perms": // a special case or permissions
+				var p *opsee_types.Permission
+				b, err := json.Marshal(val)
+				if err != nil {
+					continue
+				}
+				json.Unmarshal(b, &p)
+				t.Field(i).Set(reflect.ValueOf(p))
+			}
 		default:
-			t.Field(i).Set(reflect.ValueOf(val))
+			if t.Field(i).CanSet() {
+				t.Field(i).Set(reflect.ValueOf(val))
+			}
 		}
 	}
 
