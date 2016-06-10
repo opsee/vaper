@@ -93,7 +93,7 @@ func (token *Token) Reify(thing interface{}) error {
 			}
 		case map[string]interface{}:
 			switch tag {
-			case "perms", "team_flags": // a special case or permissions
+			case "perms": // a special case or permissions
 				var p *opsee_types.Permission
 				b, err := json.Marshal(val)
 				if err != nil {

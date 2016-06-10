@@ -18,7 +18,6 @@ type testUser struct {
 	Admin              bool      `token:"admin"`
 	DumbId             int32     `token:"dumb_id"`
 	ThisFieldIsIgnored bool
-	TeamFlags          *opsee_types.Permission `token:"team_flags"`
 	Perms              *opsee_types.Permission `token:"perms"`
 }
 
@@ -136,7 +135,6 @@ func newTestToken(now, exp time.Time) *Token {
 		Admin:              true,
 		ThisFieldIsIgnored: true,
 		DumbId:             int32(666),
-		TeamFlags:          teamflags,
 		Perms:              perms,
 	}
 
