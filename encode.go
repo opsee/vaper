@@ -37,6 +37,10 @@ type CryptOpts struct {
 	Key        []byte
 }
 
+type MarshalOpts struct {
+	Crypto *CryptOpts
+}
+
 func (c *CryptOpts) Validate() error {
 	var missing []string
 	if c.Algorithm == "" {
@@ -55,8 +59,15 @@ func (c *CryptOpts) Validate() error {
 }
 
 // Creates an encrypted json web token of interface v
-func MarshalToken(v interface{}, c *CryptOpts) ([]byte, error) {
-	//log.SetLevel(log.DebugLevel)
+func MarshalToken(v interface{}, opts *MarshalOpts) ([]byte, error) {
+	log.SetLevel(log.DebugLevel)
+
+	if opts == nil {
+		opts = &MarshalOpts{
+			Crypto: nil,
+		}
+	}
+	c := opts.Crypto
 
 	e := &encodeState{}
 	err := e.marshal(v, encOpts{}) // encOpts is encoding options
@@ -65,11 +76,7 @@ func MarshalToken(v interface{}, c *CryptOpts) ([]byte, error) {
 	}
 
 	if c == nil {
-		if !AllowDefaultCryptOpts {
-			return nil, fmt.Errorf("encryption options not specified")
-		}
-		log.Warn("encryption options not provided, using defaults!")
-		c = defaultCryptOpts
+		return e.Bytes(), err
 	} else {
 		if verr := c.Validate(); verr != nil {
 			return nil, verr
@@ -90,7 +97,7 @@ type TokenMarshalerError struct {
 }
 
 func (e *TokenMarshalerError) Error() string {
-	return "json: error calling MarshalToken for type " + e.Type.String() + ": " + e.Err.Error()
+	return "jwt: error calling MarshalToken for type " + e.Type.String() + ": " + e.Err.Error()
 }
 
 var hex = "0123456789abcdef"
@@ -337,10 +344,6 @@ func tokenMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 
 // Encoder for types included in token that do not implement TokenMarshaler
 func jsonEncoder(e *encodeState, v reflect.Value, opts encOpts) {
-	if v.Kind() == reflect.Ptr && v.IsNil() {
-		e.WriteString("null")
-		return
-	}
 	b, err := json.Marshal(v.Interface())
 	if err == nil {
 		err = json.Compact(&e.Buffer, b)

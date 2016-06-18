@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/opsee/basic/schema"
+	"github.com/opsee/basic/schema"
 	opsee_types "github.com/opsee/protobuf/opseeproto/types"
 	log "github.com/sirupsen/logrus"
 	. "gopkg.in/check.v1"
@@ -31,6 +31,16 @@ func Test(t *testing.T) { TestingT(t) }
 
 func (s *TokenSuite) SetUpTest(c *C) {
 	Init(testKey)
+}
+
+func (s *TokenSuite) TestToke(c *C) {
+	toke, err := Unmarshal(bearerToke)
+	c.Assert(err, DeepEquals, ErrorTokenExpired)
+	user := &schema.User{}
+	err = toke.Reify(user)
+	c.Assert(err, IsNil)
+	c.Assert(user.Email, DeepEquals, "dan@opsee.co")
+	log.Debugf("reified user %v from legacy token", user)
 }
 
 func (s *TokenSuite) TestMarshalUnmarshalValidToken(c *C) {

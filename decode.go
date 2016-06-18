@@ -86,41 +86,54 @@ import (
 // character U+FFFD.
 //
 
-func UnmarshalToken(data []byte, v interface{}, c *CryptOpts) error {
-	//log.SetLevel(log.DebugLevel)
+type UnmarshalOpts struct {
+	Crypto    *CryptOpts
+	CallIface bool
+}
 
-	if c == nil {
-		c = defaultCryptOpts
-	} else {
+func UnmarshalToken(data []byte, v interface{}, opts *UnmarshalOpts) error {
+	log.SetLevel(log.DebugLevel)
+
+	if opts == nil {
+		opts = &UnmarshalOpts{
+			Crypto:    nil,
+			CallIface: true,
+		}
+	}
+	c := opts.Crypto
+
+	// decrypt
+	if c != nil {
 		if verr := c.Validate(); verr != nil {
 			return verr
 		}
+
+		payload, headers, err := jose.Decode(string(data), c.Key)
+		if err != nil {
+			return err
+		}
+
+		if headers["alg"] != c.Algorithm {
+			return fmt.Errorf("token enc does not match")
+		}
+
+		if headers["enc"] != c.Encryption {
+			return fmt.Errorf("token enc does not match")
+		}
+		data = []byte(payload)
 	}
 
-	payload, headers, err := jose.Decode(string(data), c.Key)
-	if err != nil {
-		return err
-	}
-
-	if headers["alg"] != c.Algorithm {
-		return fmt.Errorf("token enc does not match")
-	}
-
-	if headers["enc"] != c.Encryption {
-		return fmt.Errorf("token enc does not match")
-	}
-
+	log.Debugf("unmarshaling %v", string(data))
 	// Check for well-formedness.
 	// Avoids filling out half a data structure
 	// before discovering a JSON syntax error.
 	var d decodeState
-	p := []byte(payload)
-	err = checkValid(p, &d.scan)
+	err := checkValid(data, &d.scan)
 	if err != nil {
 		return err
 	}
 
-	d.init(p)
+	d.init(data, opts)
 	err = d.unmarshal(v)
 	return err
 }
@@ -143,7 +156,7 @@ type UnmarshalTypeError struct {
 }
 
 func (e *UnmarshalTypeError) Error() string {
-	return "json: cannot unmarshal " + e.Value + " into Go value of type " + e.Type.String()
+	return "token: cannot unmarshal " + e.Value + " into Go value of type " + e.Type.String()
 }
 
 // An UnmarshalFieldError describes a JSON object key that
@@ -156,7 +169,7 @@ type UnmarshalFieldError struct {
 }
 
 func (e *UnmarshalFieldError) Error() string {
-	return "json: cannot unmarshal object key " + strconv.Quote(e.Key) + " into unexported field " + e.Field.Name + " of type " + e.Type.String()
+	return "token: cannot unmarshal object key " + strconv.Quote(e.Key) + " into unexported field " + e.Field.Name + " of type " + e.Type.String()
 }
 
 // An InvalidUnmarshalError describes an invalid argument passed to Unmarshal.
@@ -167,17 +180,16 @@ type InvalidUnmarshalError struct {
 
 func (e *InvalidUnmarshalError) Error() string {
 	if e.Type == nil {
-		return "json: Unmarshal(nil)"
+		return "token: Unmarshal(nil)"
 	}
 
 	if e.Type.Kind() != reflect.Ptr {
-		return "json: Unmarshal(non-pointer " + e.Type.String() + ")"
+		return "token: Unmarshal(non-pointer " + e.Type.String() + ")"
 	}
-	return "json: Unmarshal(nil " + e.Type.String() + ")"
+	return "token: Unmarshal(nil " + e.Type.String() + ")"
 }
 
 func (d *decodeState) unmarshal(v interface{}) (err error) {
-	log.Debugf("decoding type %v of type %T", v)
 	defer func() {
 		if r := recover(); r != nil {
 			if _, ok := r.(runtime.Error); ok {
@@ -283,6 +295,7 @@ type decodeState struct {
 	nextscan   scanner // for calls to nextValue
 	savedError error
 	useNumber  bool
+	opts       *UnmarshalOpts
 }
 
 // errPhase is used for errors that should not happen unless
@@ -293,10 +306,11 @@ func errPhase(ctx string) error {
 	return fmt.Errorf("JSON decoder out of sync - ", ctx)
 }
 
-func (d *decodeState) init(data []byte) *decodeState {
+func (d *decodeState) init(data []byte, opts *UnmarshalOpts) *decodeState {
 	d.data = data
 	d.off = 0
 	d.savedError = nil
+	d.opts = opts
 	return d
 }
 
@@ -463,8 +477,10 @@ func (d *decodeState) indirect(v reflect.Value, decodingNull bool) (TokenUnmarsh
 			v.Set(reflect.New(v.Type().Elem()))
 		}
 		if v.Type().NumMethod() > 0 {
-			if u, ok := v.Interface().(TokenUnmarshaler); ok {
-				return u, nil, reflect.Value{}
+			if d.opts.CallIface {
+				if u, ok := v.Interface().(TokenUnmarshaler); ok {
+					return u, nil, reflect.Value{}
+				}
 			}
 			if u, ok := v.Interface().(encoding.TextUnmarshaler); ok {
 				return nil, u, reflect.Value{}
