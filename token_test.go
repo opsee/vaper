@@ -19,6 +19,7 @@ type TestUser struct {
 	DumbId             int32     `token:"dumb_id"`
 	ThisFieldIsIgnored bool
 	Perms              *opsee_types.Permission `token:"perms"`
+	UFlags             *schema.UserFlags       `token:"uflags"`
 }
 
 var (
@@ -46,6 +47,7 @@ func (s *TokenSuite) TestToke(c *C) {
 func (s *TokenSuite) TestMarshalUnmarshalValidToken(c *C) {
 	now := time.Now().UTC()
 	perms, err := opsee_types.NewPermissions("user", "admin")
+	uflags := &schema.UserFlags{Admin: true}
 	user := &TestUser{
 		Id:                 1,
 		Email:              "vapin@vape.it",
@@ -54,6 +56,7 @@ func (s *TokenSuite) TestMarshalUnmarshalValidToken(c *C) {
 		ThisFieldIsIgnored: true,
 		DumbId:             int32(666),
 		Perms:              perms,
+		UFlags:             uflags,
 	}
 
 	token := New(user, user.Email, now, now.Add(time.Hour*1))
@@ -74,12 +77,14 @@ func (s *TokenSuite) TestMarshalUnmarshalValidToken(c *C) {
 		c.Assert(nuser.Admin, DeepEquals, true)
 		c.Assert(nuser.DumbId, DeepEquals, int32(666))
 		c.Assert(nuser.Perms, DeepEquals, perms)
+		c.Assert(nuser.UFlags, DeepEquals, uflags)
 	}
 }
 
 func (s *TokenSuite) TestLegacyReify(c *C) {
 	now := time.Now().UTC()
 	perms, err := opsee_types.NewPermissions("user", "admin")
+	uflags := &schema.UserFlags{Admin: true}
 	user := &TestUser{
 		Id:                 1,
 		Email:              "vapin@vape.it",
@@ -88,6 +93,7 @@ func (s *TokenSuite) TestLegacyReify(c *C) {
 		ThisFieldIsIgnored: true,
 		DumbId:             int32(666),
 		Perms:              perms,
+		UFlags:             uflags,
 	}
 
 	token := New(user, user.Email, now, now.Add(time.Hour*1))
@@ -110,6 +116,7 @@ func (s *TokenSuite) TestLegacyReify(c *C) {
 	c.Assert(nuser.Admin, DeepEquals, true)
 	c.Assert(nuser.DumbId, DeepEquals, int32(666))
 	c.Assert(nuser.Perms, DeepEquals, perms)
+	c.Assert(nuser.UFlags, DeepEquals, uflags)
 }
 
 func (s *TokenSuite) TestMarshalUnmarshalExpiredToken(c *C) {
