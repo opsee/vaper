@@ -87,8 +87,7 @@ import (
 //
 
 type UnmarshalOpts struct {
-	Crypto    *CryptOpts
-	CallIface bool
+	Crypto *CryptOpts
 }
 
 func UnmarshalToken(data []byte, v interface{}, opts *UnmarshalOpts) error {
@@ -96,8 +95,7 @@ func UnmarshalToken(data []byte, v interface{}, opts *UnmarshalOpts) error {
 
 	if opts == nil {
 		opts = &UnmarshalOpts{
-			Crypto:    nil,
-			CallIface: true,
+			Crypto: nil,
 		}
 	}
 	c := opts.Crypto
@@ -477,10 +475,8 @@ func (d *decodeState) indirect(v reflect.Value, decodingNull bool) (TokenUnmarsh
 			v.Set(reflect.New(v.Type().Elem()))
 		}
 		if v.Type().NumMethod() > 0 {
-			if d.opts.CallIface {
-				if u, ok := v.Interface().(TokenUnmarshaler); ok {
-					return u, nil, reflect.Value{}
-				}
+			if u, ok := v.Interface().(TokenUnmarshaler); ok {
+				return u, nil, reflect.Value{}
 			}
 			if u, ok := v.Interface().(encoding.TextUnmarshaler); ok {
 				return nil, u, reflect.Value{}
